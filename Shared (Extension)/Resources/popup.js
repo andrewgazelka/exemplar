@@ -43,14 +43,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("Button clicked");
 
     try {
-      const tab = await browser.tabs.getCurrent();
-      console.log("Current tab:", tab);
+      // Get current tab - works in both Chrome and Safari
+      const tabs = await browserAPI.tabs.query({ active: true, currentWindow: true });
+      const currentTab = tabs[0];
 
-      if (!tab) {
+      if (!currentTab) {
         throw new Error("No active tab found");
       }
 
-      const response = await browser.tabs.sendMessage(tab.id, {
+      const response = await browserAPI.tabs.sendMessage(currentTab.id, {
         action: "anonymize",
         apiKey: apiKey,
       });
