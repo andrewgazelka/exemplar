@@ -7,7 +7,7 @@ class BackgroundHandler {
   setupListeners() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === "anonymize_text") {
-        this.handleAnonymization(request.texts)
+        this.handleAnonymization(request.texts, request.apiKey)
           .then(sendResponse)
           .catch((error) => sendResponse({ error: error.message }));
         return true;
@@ -15,7 +15,11 @@ class BackgroundHandler {
     });
   }
 
-  async handleAnonymization(texts) {
+  async handleAnonymization(texts, apiKey) {
+    if (!apiKey) {
+      throw new Error('API key is required');
+    }
+
     const prompt = {
       tools: [{
         name: "anonymize_text",
@@ -26,12 +30,16 @@ class BackgroundHandler {
             result: {
               type: "object",
               properties: {
-                anonymized_text: {
-                  type: "string",
-                  description: "The anonymized version of the input text"
+                anonymization_map: {
+                  type: "object",
+                  description: "A mapping of original text to anonymized versions",
+                  additionalProperties: {
+                    type: "string",
+                    description: "The anonymized version of the original text"
+                  }
                 }
               },
-              required: ["anonymized_text"]
+              required: ["anonymization_map"]
             }
           },
           required: ["result"]
@@ -44,7 +52,7 @@ class BackgroundHandler {
           content: [
             {
               type: "text",
-              text: `Replace any personally identifiable information with realistic alternatives. Original text: ${JSON.stringify(texts)}`
+              text: `Create a mapping where each key is an original text and its value is the anonymized version. Replace any personally identifiable information with realistic alternatives, maintaining consistency across replacements. Original texts: ${JSON.stringify(texts)}`
             }
           ]
         }
@@ -53,17 +61,21 @@ class BackgroundHandler {
       max_tokens: 1024
     };
 
+    console.log(prompt);
+
     try {
       const response = await fetch(this.API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": "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",
+          "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true"
         },
         body: JSON.stringify(prompt)
       });
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -71,19 +83,12 @@ class BackgroundHandler {
       }
 
       const data = await response.json();
-        // Get the anonymized text directly from the input.result object
-        const anonymizedText = data.content[0].input.result.anonymized_text;
-        
-        console.log(anonymizedText);
-        
-        // Try to parse if it's a string representation of an array
-        try {
-          const parsed = JSON.parse(anonymizedText);
-          return { anonymizedTexts: parsed };
-        } catch {
-          // If it's not JSON, return as is
-          return { anonymizedTexts: anonymizedText };
-        }
+      console.log('Parsed response:', data);
+
+      const anonymizationMap = data.content[0].input.result.anonymization_map;
+      console.log('Anonymization map:', anonymizationMap);
+
+      return { anonymizedTexts: anonymizationMap };
     } catch (error) {
       if (error.message.includes("rate_limit_error")) {
         throw new Error("Rate limit exceeded. Please try again later.");

@@ -1,28 +1,65 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const anonymizeButton = document.getElementById('anonymize');
-    const statusDiv = document.getElementById('status');
+document.addEventListener("DOMContentLoaded", async () => {
+  const anonymizeButton = document.getElementById("anonymize");
+  const apiKeyInput = document.getElementById("apiKey");
+  const saveKeyButton = document.getElementById("saveKey");
+  const statusDiv = document.getElementById("status");
 
-    anonymizeButton.addEventListener('click', async () => {
-        statusDiv.textContent = 'Anonymizing page...';
-        console.log('Button clicked'); // Debug log
+  // Load saved API key if it exists
+  try {
+    const apiKey = localStorage.getItem("apiKey");
+    if (apiKey) {
+      apiKeyInput.value = apiKey;
+      statusDiv.textContent = "API key loaded";
+    }
+  } catch (error) {
+    console.error("Error loading API key:", error);
+  }
 
-        try {
-            const tab = await browser.tabs.getCurrent();
-            console.log('Current tab:', tab); // Debug log
-            
-            if (!tab) {
-                throw new Error('No active tab found');
-            }
+  // Save API key
+  saveKeyButton.addEventListener("click", async () => {
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+      statusDiv.textContent = "Please enter an API key";
+      return;
+    }
 
-            const response = await browser.tabs.sendMessage(tab.id, {
-                action: 'anonymize'
-            });
-            
-            console.log('Response from content script:', response); // Debug log
-            statusDiv.textContent = 'Page anonymized!';
-        } catch (error) {
-            console.error('Extension error:', error);
-            statusDiv.textContent = 'Error: ' + error.message;
-        }
-    });
+    try {
+      localStorage.setItem("apiKey", apiKey);
+      statusDiv.textContent = "API key saved";
+    } catch (error) {
+      console.error("Error saving API key:", error);
+      statusDiv.textContent = "Error saving API key";
+    }
+  });
+
+  anonymizeButton.addEventListener("click", async () => {
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+      statusDiv.textContent = "Please enter an API key first";
+      return;
+    }
+
+    statusDiv.textContent = "Anonymizing page...";
+    console.log("Button clicked");
+
+    try {
+      const tab = await browser.tabs.getCurrent();
+      console.log("Current tab:", tab);
+
+      if (!tab) {
+        throw new Error("No active tab found");
+      }
+
+      const response = await browser.tabs.sendMessage(tab.id, {
+        action: "anonymize",
+        apiKey: apiKey,
+      });
+
+      console.log("Response from content script:", response);
+      statusDiv.textContent = "Page anonymized!";
+    } catch (error) {
+      console.error("Extension error:", error);
+      statusDiv.textContent = "Error: " + error.message;
+    }
+  });
 });

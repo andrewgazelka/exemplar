@@ -7,8 +7,15 @@
 </head>
 <body>
     <div class="container">
-        <button id="anonymize">Anonymize</button>
-        <div id="status"></div>
+        <div class="form-group">
+            <label for="apiKey">Anthropic API Key:</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key">
+            <button id="saveKey">Save Key</button>
+        </div>
+        <div class="form-group">
+            <button id="anonymize">Anonymize</button>
+            <div id="status"></div>
+        </div>
     </div>
 </body>
 </html>
