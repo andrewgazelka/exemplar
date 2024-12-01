@@ -6,7 +6,7 @@ class ContentAnonymizer {
   }
 
   init() {
-    browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log("Message received:", message);
       if (message.action === "anonymize") {
         this.processPage(message.apiKey)
@@ -65,7 +65,7 @@ class ContentAnonymizer {
         "Requesting anonymization for texts:",
         Array.from(textMap.keys())
       );
-      const response = await browserAPI.runtime.sendMessage({
+      const response = await browser.runtime.sendMessage({
         action: "anonymize_text",
         texts: Array.from(textMap.keys()),
         apiKey: apiKey,
